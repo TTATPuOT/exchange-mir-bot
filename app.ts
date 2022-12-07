@@ -1,6 +1,6 @@
 import * as http from 'http'
 
-const host = 'localhost'
+const host = 'exchange-rates-mir.vercel.app'
 const port = 8000
 
 const requestListener = (req: any, res: any) => {
