@@ -1,14 +1,12 @@
-import * as http from 'http'
+import express from 'express'
 
-const host = 'exchange-rates-mir.vercel.app'
-const port = 8000
+const app = express()
+const port = process.env.PORT
 
-const requestListener = (req: any, res: any) => {
-	res.writeHead(200)
-	res.end('Hello, world!')
-}
+app.get('/', (req, res) => {
+	res.send('Hello World! 🥳')
+})
 
-const server = http.createServer(requestListener)
-server.listen(port, host, () => {
-	console.log(`Server is running on http://${host}:${port}`)
+app.listen(port, () => {
+	console.log(`Example app listening on port ${port}`)
 })
