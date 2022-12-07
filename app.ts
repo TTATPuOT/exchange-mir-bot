@@ -1,12 +1,21 @@
-import express from 'express'
+import * as dotenv from 'dotenv'
+import { Telegraf } from 'telegraf'
+import CommandsRegister from './src/Telegram/CommandsRegister'
+import logger from './src/Logger'
 
-const app = express()
-const port = process.env.PORT
+dotenv.config()
 
-app.get('/', (req, res) => {
-	res.send('Hello World! 🥳')
+logger.info(`Bot starting on ${process.env.DOMAIN}:${process.env.PORT}`)
+const bot = new Telegraf(process.env.BOT_TOKEN as string)
+
+CommandsRegister.register(bot)
+
+bot.launch({
+	webhook: {
+		domain: process.env.DOMAIN as string,
+		port: (process.env.PORT || 3000) as number,
+	},
 })
 
-app.listen(port, () => {
-	console.log(`Example app listening on port ${port}`)
-})
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
