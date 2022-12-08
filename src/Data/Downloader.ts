@@ -2,7 +2,7 @@ import axios from 'axios'
 import logger from '../Logger'
 
 export default class Downloader {
-	private static readonly url: string =
+	public static readonly url: string =
 		'https://mironline.ru/support/list/kursy_mir/'
 
 	public static async getHtml(): Promise<string> {
