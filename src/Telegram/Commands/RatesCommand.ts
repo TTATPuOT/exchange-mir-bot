@@ -1,66 +1,120 @@
 import AbstractCommand from './AbstractCommand'
-import { Context } from 'telegraf'
 import Rate from '../../Types/Rate'
-import Downloader from '../../Data/Downloader'
-import Parser from '../../Data/Parser'
 import logger from '../../Logger'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
+import Store from '../../Data/Store'
+import TelegramContext from '../../Types/TelegramContext'
+import floorNumber from '../../Helpers/floorNumber'
+import formatNumber from '../../Helpers/formatNumber'
+
+const DEFAULT_MULTIPLIER = 0
 
 export default class RatesCommand extends AbstractCommand {
-	public readonly name: string = 'rates'
-	public readonly description: string = 'Получить актуальные курсы валют'
+	public static readonly command: string = 'rates'
+	public static readonly description: string =
+		'Получить актуальные курсы валют'
 
-	private rates: Rate[] = []
-	private date: Dayjs
+	private rates: Rate[] | undefined
+	private date: Dayjs | undefined
+	private multiplier: number = DEFAULT_MULTIPLIER
 
-	constructor() {
-		super()
-
-		this.date = dayjs(new Date())
-	}
-
-	async callback(ctx: Context): Promise<void> {
+	public static async callback(ctx: TelegramContext): Promise<void> {
 		if (!ctx.chat || !ctx.message) return
+		await super.callback(ctx)
 
 		logger.info(
 			`ChatId ${ctx.chat.id} @${ctx.message.from.username} request to rates`
 		)
 
-		if (this.rates.length <= 0) {
-			logger.info(`Rates will be updated`)
-			await ctx.sendChatAction('typing')
-			await this.updateRates()
-		}
+		const rates = await Store.getRates()
+		const date = await Store.getDate()
+		const multiplier = parseInt(ctx.command.args[0])
 
-		await ctx.reply(this.getText(), { parse_mode: 'HTML' })
+		const command = new RatesCommand(ctx)
+		command
+			.setRatesAndDate(rates, date)
+			.setMultiplier(isNaN(multiplier) ? DEFAULT_MULTIPLIER : multiplier)
+		return command.call()
 	}
 
-	private async updateRates(): Promise<void> {
-		const html = await Downloader.getHtml()
-		const parser = new Parser(html)
+	public setRatesAndDate(rates: Rate[], date: Dayjs): RatesCommand {
+		this.rates = rates
+		this.date = date
 
-		this.rates = parser.getResults()
-		this.date = dayjs(new Date())
+		return this
 	}
 
-	private getText(): string {
-		let text = `Курсы снятия и оплаты валют с карт МИР на <b>${this.getDate()}</b>\n\n`
+	public setMultiplier(multiplier: number): RatesCommand {
+		this.multiplier = multiplier
+
+		return this
+	}
+
+	private isNeedCalculate(): boolean {
+		return this.multiplier > DEFAULT_MULTIPLIER
+	}
+
+	public async call(): Promise<void> {
+		const text = this.getText()
+
+		await this.ctx.reply(text, { parse_mode: 'HTML' })
+	}
+
+	protected getText(): string {
+		if (!this.rates) throw new Error(`Not found rates`)
+
+		let text = this.getHeaderText()
 
 		for (const rate of this.rates) {
-			text += `${rate.getFlag()} ${rate.getName()}: <b>${rate.getInvertedRate()}</b> ₽ (${rate.getRate()} ${rate.getCurrency()})\n`
+			text += this.isNeedCalculate()
+				? this.getCalculatedText(rate)
+				: this.getRateText(rate)
 		}
 
-		text +=
-			'\nКурсы других валют устанавливаются банками, выпустившими карту, а не ПС «Мир»\n'
+		text += this.getFooterText()
 
-		if (process.env.BOT_USERNAME) {
-			text += `\n${process.env.BOT_USERNAME}`
+		return text
+	}
+
+	protected getHeaderText(): string {
+		const dateText = this.getDate()
+
+		let text = `Курсы снятия и оплаты валют с карт МИР на <b>${dateText}</b>\n\n`
+		if (this.isNeedCalculate()) {
+			text += `Вы запросили расчёт для <b>${formatNumber(
+				this.multiplier
+			)}</b> ₽\n\n`
 		}
 
 		return text
 	}
 
-	private getDate(): string {
+	private getRateText(rate: Rate): string {
+		return `${rate.getFlag()} ${rate.getName()}: <b>${rate.getInvertedRate()}</b> ₽ (${rate.getRate()} ${rate.getCurrency()})\n`
+	}
+
+	protected getCalculatedText(rate: Rate): string {
+		const currencyPrice = floorNumber(this.multiplier / rate.getRate())
+
+		return `${rate.getFlag()} ${rate.getName()}: <b>${currencyPrice}</b> ${rate.getCurrency()}\n`
+	}
+
+	protected getFooterText(): string {
+		let text = ''
+
+		if (!this.isNeedCalculate()) {
+			text += `\nВы так же можете добавить к команде /${RatesCommand.command} число, чтобы рассчитать сумму рублей в местной валюте.\n`
+			text += `Например: <code>/${RatesCommand.command} 1000</code>\n`
+		}
+
+		if (process.env.BOT_USERNAME) text += `\n${process.env.BOT_USERNAME}`
+
+		return text
+	}
+
+	protected getDate(): string {
+		if (!this.date) throw new Error(`Not found date`)
+
 		return this.date.format('DD.MM.YYYY hh:mm')
 	}
 }

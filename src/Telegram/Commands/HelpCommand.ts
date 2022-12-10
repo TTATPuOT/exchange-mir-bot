@@ -1,12 +1,12 @@
 import AbstractCommand from './AbstractCommand'
-import { Context } from 'telegraf'
 import Downloader from '../../Data/Downloader'
+import TelegramContext from '../../Types/TelegramContext'
 
 export default class HelpCommand extends AbstractCommand {
-	public readonly name: string = 'help'
-	public readonly description: string = 'Информация о боте'
+	public static readonly command: string = 'help'
+	public static readonly description: string = 'Информация о боте'
 
-	async callback(ctx: Context): Promise<void> {
+	public static async callback(ctx: TelegramContext): Promise<void> {
 		let text = 'Бот разработан @neverov12 ✨\n'
 		text +=
 			'Если что-то не работает, пишите мне. Бот может задерживать отправку сообщений <b>до 30 секунд</b> из за бесплатного размещения на хостинге 🦥\n\n'

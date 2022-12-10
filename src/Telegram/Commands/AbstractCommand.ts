@@ -1,11 +1,21 @@
-import { Context } from 'telegraf'
+import TelegramContext from '../../Types/TelegramContext'
 
 export default abstract class AbstractCommand {
-	public readonly name: string = ''
-	public readonly description: string = ''
-	public readonly showInList: boolean = true
+	public static readonly command: string = ''
+	public static readonly description: string = ''
+	public static readonly showInList: boolean = true
 
-	public async callback(ctx: Context): Promise<void> {
-		throw new Error('Please, implements AbstractCommands')
+	protected ctx: TelegramContext
+
+	public static async callback(ctx: TelegramContext): Promise<void> {
+		await ctx.sendChatAction('typing')
+	}
+
+	constructor(ctx: TelegramContext) {
+		this.ctx = ctx
+	}
+
+	public async call(): Promise<void> {
+		throw new Error('Please, implements AbstractCommand')
 	}
 }

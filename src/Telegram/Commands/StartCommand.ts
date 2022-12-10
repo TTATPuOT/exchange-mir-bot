@@ -1,11 +1,13 @@
 import AbstractCommand from './AbstractCommand'
-import { Context } from 'telegraf'
+import TelegramContext from '../../Types/TelegramContext'
 
 export default class StartCommand extends AbstractCommand {
-	public readonly name: string = 'start'
-	public readonly showInList: boolean = false
+	public static readonly command: string = 'start'
+	public static readonly showInList: boolean = false
 
-	async callback(ctx: Context): Promise<void> {
+	public static async callback(ctx: TelegramContext): Promise<void> {
+		console.log(ctx.command)
+
 		let text = 'Привет! 🤩\n'
 		text +=
 			'🦄 Этот бот позволяет очень удобно узнать актуальный курс валют карт МИР.\n\n'

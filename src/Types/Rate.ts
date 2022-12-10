@@ -1,3 +1,5 @@
+import floorNumber from '../Helpers/floorNumber'
+
 const FLAGS: { [key: string]: string } = {
 	'Армянский драм': '🇦🇲',
 	'Белорусский рубль': '🇧🇾',
@@ -48,6 +50,6 @@ export default class Rate {
 	}
 
 	getInvertedRate(): number {
-		return Math.ceil(this.invertedRate * 100) / 100
+		return floorNumber(this.invertedRate)
 	}
 }
